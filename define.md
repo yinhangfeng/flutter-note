@@ -22,7 +22,7 @@ AAA
 
 ```
 // 调用 AAA 类的实例方法 aaa
-:AAA.aaa()
+: AAA.aaa()
   // 缩进代表代码在 aaa 方法内
   // 给 AAA 的成员 a1 赋值 3
   a1 = 3
@@ -32,8 +32,10 @@ AAA
   b:BBB.bbb()
   // 调用 CCC 类的静态方法 ccc
   CCC.ccc()
+  // 定义变量 ddd 类型为 DDD
+  let ddd: DDD
   // 调用成员 d 的方法 ddd 并将返回结果赋值给 xxx 同时 xxx 为 XXX 类型
-  xxx:XXX: = d:DDD:.ddd()
+  xxx: XXX = d: DDD.ddd()
   // 返回 xxx
   xxx
   
