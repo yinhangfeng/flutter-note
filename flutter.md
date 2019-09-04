@@ -13,6 +13,19 @@ Widget
     createElement: StatefulElement
     createState: State
 
+  < RenderObjectWidget
+    createRenderObject(BuildContext context): RenderObject
+    updateRenderObject(BuildContext context, covariant RenderObject renderObject)
+    didUnmountRenderObject(covariant RenderObject renderObject)
+
+    < LeafRenderObjectWidget
+
+    < SingleChildRenderObjectWidget
+      child: Widget
+
+    < MultiChildRenderObjectWidget
+      children: List<Widget>
+
   < ProxyWidget
     child: Widget
 
@@ -21,6 +34,19 @@ Widget
     < InheritedWidget
       createElement: InheritedElement
       updateShouldNotify(InheritedWidget): bool
+
+    < ParentDataWidget<T extends RenderObjectWidget>
+```
+
+## BuildOwner
+
+```
+BuildOwner
+  scheduleBuildFor(Element)
+  lockState(callback())
+  buildScope(context: Element, VoidCallback)
+  finalizeTree()
+  reassemble(root: Element)
 ```
 
 ## Element
@@ -69,7 +95,24 @@ BuildContext
     performRebuild()
 
     < RenderObjectElement
-      TODO
+      _ancestorRenderObjectElement: RenderObjectElement
+      _findAncestorRenderObjectElement(): RenderObjectElement
+      _findAncestorParentDataElement(): ParentDataElement<RenderObjectWidget>
+      updateChildren(List<Element> oldChildren, List<Widget> newWidgets, { Set<Element> forgottenChildren }): List<Element>
+      insertChildRenderObject(covariant RenderObject child, covariant dynamic slot)
+      moveChildRenderObject(covariant RenderObject child, covariant dynamic slot)
+      removeChildRenderObject(covariant RenderObject child)
+
+      < LeafRenderObjectElement
+
+      < SingleChildRenderObjectElement
+        _child: Element
+
+      < MultiChildRenderObjectElement
+        visitChildren(ElementVisitor visitor)
+
+      < RootRenderObjectElement
+        assignOwner(BuildOwner owner)
 
     < ComponentElement
       _child: Element
@@ -93,76 +136,4 @@ BuildContext
           setDependencies(Element dependent, Object value): Object
           updateDependencies(Element dependent, Object aspect)
           notifyDependent(covariant InheritedWidget oldWidget, Element dependent)
-```
-
-## BuildOwner
-
-```
-BuildOwner
-  scheduleBuildFor(Element)
-  lockState(callback())
-  buildScope(context: Element, VoidCallback)
-  finalizeTree()
-  reassemble(root: Element)
-```
-
-## 更新过程
-
-```
-State.setState
-  Element.markNeedsBuild
-    BuildOwner.scheduleBuildFor(element)
-      _dirtyElements.add(element)
-
-
-WidgetsBinding.drawFrame
-  BuildOwner.buildScope
-    Element.rebuild
-      Element.performRebuild
-
-
-ComponentElement:
-  ComponentElement.performRebuild
-  built = ComponentElement.build
-
-  StatelessElement:
-    StatelessElement.build
-    StatelessWidget.build
-  StatefulElement:
-    StatefulElement.build
-    State.build
-
-  child = ComponentElement.updateChild(child, built, slot)
-  deactivateChild || inflateWidget || updateSlotForChild || child.update
-
-  Element.update
-    widget = newWidget
-  StatelessElement:
-    Element.rebuild
-  StatefulElement:
-    state.widget = newWidget
-    Element.rebuild
-
-  Element.inflateWidget
-    newChild = newWidget.createElement()
-    newChild.mount
-
-    Element:
-    Element.mount
-      parent
-      slot
-      owner
-    ComponentElement:
-    ComponentElement.mount
-      ...
-      _firstBuild
-        rebuild
-    RenderObjectElement:
-    RenderObjectElement.mount
-      widget.createRenderObject
-      attachRenderObject
-
-RenderObjectElement:
-  RenderObjectElement.performRebuild
-    widget.updateRenderObject
 ```
