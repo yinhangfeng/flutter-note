@@ -10,25 +10,62 @@ State.setState
 ## build
 
 ```
-WidgetsBinding.drawFrame
-  BuildOwner.buildScope
-    Element.rebuild
-      Element.performRebuild
+:WidgetsBinding.drawFrame()
+  buildOwner:BuildOwner.buildScope(renderViewElement)
+    // foreach _dirtyElements
+    :Element.rebuild()
+      performRebuild()
+```
 
+ComponentElement.performRebuild
 
-ComponentElement:
-  ComponentElement.performRebuild
-  built = ComponentElement.build
+```
+:ComponentElement.performRebuild
+  let built: Widget = build()
+  >StatelessElement.build
+    widget:StatelessWidget.build
+  >StatefulElement.build
+    state:State.build
 
-  StatelessElement:
-    StatelessElement.build
-    StatelessWidget.build
-  StatefulElement:
-    StatefulElement.build
-    State.build
+  _child: Element = updateChild(_child, built, slot)
+  // (Element child, Widget newWidget, dynamic newSlot)
+    case: inflateWidget
+      inflateWidget(newWidget, newSlot)
+        let newChild: Element = newWidget.createElement()
+        newChild.mount(this, newSlot)
+        // (Element parent, dynamic newSlot)
+          // set parent slot depth owner
+          parent
+          slot
+          depth
+          owner
+          active = true
+        newChild
 
-  child = ComponentElement.updateChild(child, built, slot)
-  deactivateChild || inflateWidget || updateSlotForChild || child.update
+    case: deactivateChild // newWidget == null || !Widget.canUpdate()
+      deactivateChild(child)
+        child._parent = null
+        child.detachRenderObject()
+        owner._inactiveElements.add(child)
+    
+    case: updateSlotForChild
+      updateSlotForChild(child, newSlot)
+      // visit children _updateSlot(newSlot)
+
+        Element:
+        Element.mount
+          parent
+          slot
+          owner
+        ComponentElement:
+        ComponentElement.mount
+          ...
+          _firstBuild
+            rebuild
+        RenderObjectElement:
+        RenderObjectElement.mount
+          widget.createRenderObject
+          attachRenderObject
 
   Element.update
     widget = newWidget
@@ -37,25 +74,6 @@ ComponentElement:
   StatefulElement:
     state.widget = newWidget
     Element.rebuild
-
-  Element.inflateWidget
-    newChild = newWidget.createElement()
-    newChild.mount
-
-    Element:
-    Element.mount
-      parent
-      slot
-      owner
-    ComponentElement:
-    ComponentElement.mount
-      ...
-      _firstBuild
-        rebuild
-    RenderObjectElement:
-    RenderObjectElement.mount
-      widget.createRenderObject
-      attachRenderObject
 
 RenderObjectElement:
   RenderObjectElement.performRebuild

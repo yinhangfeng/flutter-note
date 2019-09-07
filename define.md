@@ -22,7 +22,7 @@ AAA
 
 ```
 // 调用 AAA 类的实例方法 aaa
-: AAA.aaa()
+:AAA.aaa()
   // 缩进代表代码在 aaa 方法内
   // 给 AAA 的成员 a1 赋值 3
   a1 = 3
@@ -36,6 +36,12 @@ AAA
   let ddd: DDD
   // 调用成员 d 的方法 ddd 并将返回结果赋值给 xxx 同时 xxx 为 XXX 类型
   xxx: XXX = d: DDD.ddd()
+
+  // 调用 AAA 的子类 AAA1 的实例方法 aaa
+  >AAA1.aaa1
+  // 调用 AAA 的父类 AAAP 的实例方法 aaa (就是当前方法覆盖的方法)
+  <AAAP.aaa
+
   // 返回 xxx
   xxx
   
