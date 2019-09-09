@@ -116,6 +116,10 @@ ComponentElement.performRebuild
           super.mount()
           _firstBuild()
             rebuild()
+            // >StatefulElement._firstBuild
+              _state.initState()
+              _state.didChangeDependencies()
+              super._firstBuild()
 
         // >RenderObjectElement.mount
           super.mount()
@@ -123,7 +127,11 @@ ComponentElement.performRebuild
           attachRenderObject(newSlot)
             _slot = newSlot
             _ancestorRenderObjectElement = _findAncestorRenderObjectElement()
+              // 查找最近的 RenderObjectElement 祖先
             _ancestorRenderObjectElement?.insertChildRenderObject(renderObject, newSlot)
+            // (RenderObject child, dynamic slot)
+              // >SingleChildRenderObjectElement.insertChildRenderObject
+                renderObject.child = child
             final ParentDataElement<RenderObjectWidget> parentDataElement = _findAncestorParentDataElement()
             if (parentDataElement != null)
               _updateParentData(parentDataElement.widget)
@@ -144,6 +152,8 @@ ComponentElement.performRebuild
       // >RenderObjectElement.update
         super.update()
         widget.updateRenderObject(this, renderObject)
+          // 一般会修改 renderObject 的一些属性
+          // https://github.com/flutter/flutter/blob/v1.10.0/packages/flutter/lib/src/material/radio.dart#L240
         _dirty = false
 ```
 
@@ -153,4 +163,34 @@ RenderObjectElement.performRebuild
 :RenderObjectElement.performRebuild
   widget.updateRenderObject(this, renderObject)
   _dirty = false
+```
+
+RenderObject.markNeedsPaint
+
+```
+:RenderObject.markNeedsPaint
+  _needsPaint = true
+  if (isRepaintBoundary) {
+    if (owner != null) {
+      owner._nodesNeedingPaint.add(this);
+      owner.requestVisualUpdate();
+    }
+  } else if (parent is RenderObject) {
+    final RenderObject parent = this.parent;
+    parent.markNeedsPaint();
+  } else {
+    if (owner != null)
+      owner.requestVisualUpdate();
+  }
+
+  // PipelineOwner.requestVisualUpdate
+    onNeedVisualUpdate()
+      // RendererBinding.initInstances create PipelineOwner
+      // PipelineOwner.onNeedVisualUpdate = 
+      ensureVisualUpdate RendererBinding.ensureVisualUpdate
+        // switch(schedulerPhase) ...
+        scheduleFrame()
+          window.scheduleFrame()
+          _hasScheduledFrame = true
+
 ```

@@ -104,6 +104,7 @@ BuildContext
       removeChildRenderObject(covariant RenderObject child)
 
       < LeafRenderObjectElement
+        // 没有 child 的 RenderObjectElement
 
       < SingleChildRenderObjectElement
         _child: Element
@@ -136,4 +137,95 @@ BuildContext
           setDependencies(Element dependent, Object value): Object
           updateDependencies(Element dependent, Object aspect)
           notifyDependent(covariant InheritedWidget oldWidget, Element dependent)
+```
+
+## RenderObject
+
+```
+AbstractNode
+  depth: int
+  redepthChild(AbstractNode child)
+  redepthChildren()
+  owner: Object
+  attached: bool
+  attach(covariant Object owner)
+  detach()
+  parent: AbstractNode
+  adoptChild(covariant AbstractNode child)
+  dropChild(covariant AbstractNode child)
+
+  < RenderObject
+    reassemble()
+    parentData: ParentData
+    setupParentData(covariant RenderObject child)
+    visitChildren(RenderObjectVisitor visitor)
+    _needsLayout: bool
+    _relayoutBoundary: RenderObject
+    _doingThisLayoutWithCallback: bool
+    constraints: Constraints
+    markNeedsLayout()
+    markParentNeedsLayout()
+    markNeedsLayoutForSizedByParentChange()
+    _cleanRelayoutBoundary()
+    scheduleInitialLayout()
+    _layoutWithoutResize()
+    layout(Constraints constraints, { bool parentUsesSize = false })
+    get sizedByParent: bool
+    performResize()
+    performLayout()
+    invokeLayoutCallback(LayoutCallback<T> callback)
+    rotate()
+    get isRepaintBoundary: bool
+    get alwaysNeedsCompositing: bool
+    get layer: ContainerLayer
+    set layer(ContainerLayer newLayer)
+    _needsCompositingBitsUpdate: bool
+    markNeedsCompositingBitsUpdate()
+    get needsCompositing: bool
+    _updateCompositingBits()
+    _needsPaint: bool
+    markNeedsPaint()
+    _paintWithContext(PaintingContext context, Offset offset)
+    get paintBounds: Rect
+    paint(PaintingContext context, Offset offset)
+    applyPaintTransform(covariant RenderObject child, Matrix4 transform)
+    getTransformTo(RenderObject ancestor): Matrix4
+    describeApproximatePaintClip(covariant RenderObject child): Rect
+    describeSemanticsClip(covariant RenderObject child): Rect
+    scheduleInitialSemantics()
+    handleEvent(PointerEvent event, covariant HitTestEntry entry)
+    showOnScreen({
+      RenderObject descendant,
+      Rect rect,
+      Duration duration,
+      Curve curve,
+    })
+
+    < RenderBox
+      _cachedIntrinsicDimensions: Map<_IntrinsicDimensionsCacheEntry, double>
+      _computeIntrinsicDimension(_IntrinsicDimension dimension, double argument, double computer(double argument)): double
+      getMinIntrinsicWidth(double height): double
+      computeMinIntrinsicWidth(double height): double
+      getMaxIntrinsicWidth(double height): double
+      computeMaxIntrinsicWidth(double height): double
+      // ... height
+      hasSize: bool
+      size: Size
+      // ...
+      hitTest(BoxHitTestResult result, { @required Offset position }): bool
+      hitTestSelf(Offset position): bool
+      hitTestChildren(BoxHitTestResult result, { Offset position }): bool
+      globalToLocal(Offset point, { RenderObject ancestor }): Offset
+      localToGlobal(Offset point, { RenderObject ancestor }): Offset
+
+      < RenderProxyBox
+        // 与 RenderBox 功能相同 所有方法调用转移到 child
+        // 来自 RenderObjectWithChildMixin
+        child: RenderBox
+
+        < RenderConstrainedBox
+          additionalConstraints: BoxConstraints
+          // 主要重写了 computeMinIntrinsicWidth computeMaxIntrinsicWidth computeMinIntrinsicHeight computeMaxIntrinsicHeight performLayout
+          // 实现约束之后在调用 child
+
 ```
