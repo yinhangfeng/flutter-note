@@ -1,3 +1,5 @@
+flutter 1.10.1
+
 ## Widget
 
 ```
@@ -228,4 +230,32 @@ AbstractNode
           // 主要重写了 computeMinIntrinsicWidth computeMaxIntrinsicWidth computeMinIntrinsicHeight computeMaxIntrinsicHeight performLayout
           // 实现约束之后在调用 child
 
+```
+
+## Window
+
+```
+Window
+  // ... MediaQueryData 相关数据 如 devicePixelRatio viewInsets physicalDepth
+
+  // 由 native 调用 MediaQueryData 相关
+  _onMetricsChanged()
+
+  // 请求 native 在接下来的适当时候调用 onBeginFrame onDrawFrame
+  scheduleFrame()
+
+  get set onBeginFrame()
+  get set onDrawFrame()
+```
+
+## RendererBinding
+
+```
+RendererBinding
+  // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/rendering/binding.dart#L28
+  initInstances()
+
+  < WidgetsBinding
+    // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/widgets/binding.dart#L251
+    initInstances()
 ```

@@ -1,25 +1,28 @@
+flutter 1.10.1
+
 ## setState
 
 ```
 :State.setState
   _element:Element.markNeedsBuild
     _dirty = true
+
+    // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/widgets/framework.dart#L2183
     owner:BuildOwner.scheduleBuildFor(this)
     // (Element element)
+      if (!_scheduledFlushDirtyElements && onBuildScheduled != null) {
+        _scheduledFlushDirtyElements = true;
+        onBuildScheduled();
+          // WidgetsBinding.initInstances 设置了 buildOwner.onBuildScheduled = WidgetsBinding._handleBuildScheduled
+          :WidgetsBinding._handleBuildScheduled()
+            ensureVisualUpdate()
+              // 跳转 ensureVisualUpdate
+      }
       _dirtyElements.add(element)
       element._inDirtyList = true
 ```
 
 ## build
-
-WidgetsBinding.drawFrame
-
-```
-:WidgetsBinding.drawFrame()
-  buildOwner:BuildOwner.buildScope(renderViewElement)
-    // foreach _dirtyElements
-    :Element.rebuild()
-```
 
 Element.rebuild
 
@@ -165,9 +168,43 @@ RenderObjectElement.performRebuild
   _dirty = false
 ```
 
-RenderObject.markNeedsPaint
+## ensureVisualUpdate
 
 ```
+:SchedulerBinding.ensureVisualUpdate()
+  // switch(schedulerPhase) ...
+  scheduleFrame()
+    // https://github.com/flutter/engine/blob/4243324a035d95f5a880b7f4c00ea18fe58ed5fa/lib/ui/window.dart#L1021
+    window.scheduleFrame()
+    _hasScheduledFrame = true
+```
+
+## drawFrame
+
+```
+:WidgetsBinding.drawFrame()
+
+  // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/widgets/framework.dart#L2294
+  buildOwner:BuildOwner.buildScope(renderViewElement)
+    // TODO 分析具体过程
+    // foreach _dirtyElements
+    :Element.rebuild()
+  super:RendererBinding.drawFrame()
+    // TODO 分析具体过程
+    pipelineOwner.flushLayout();
+    pipelineOwner.flushCompositingBits();
+    pipelineOwner.flushPaint();
+    renderView.compositeFrame(); // this sends the bits to the GPU
+    pipelineOwner.flushSemantics(); // this also sends the semantics to the OS.
+
+    // > WidgetsBinding.drawFrame
+  buildOwner.finalizeTree()
+```
+
+## markNeedsPaint
+
+```
+// https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/rendering/object.dart#L2037
 :RenderObject.markNeedsPaint
   _needsPaint = true
   if (isRepaintBoundary) {
@@ -184,13 +221,46 @@ RenderObject.markNeedsPaint
   }
 
   // PipelineOwner.requestVisualUpdate
+  // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/rendering/object.dart#L794
     onNeedVisualUpdate()
       // RendererBinding.initInstances create PipelineOwner
-      // PipelineOwner.onNeedVisualUpdate = 
-      ensureVisualUpdate RendererBinding.ensureVisualUpdate
-        // switch(schedulerPhase) ...
-        scheduleFrame()
-          window.scheduleFrame()
-          _hasScheduledFrame = true
+      // PipelineOwner.onNeedVisualUpdate = RendererBinding.ensureVisualUpdate
+      // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/rendering/binding.dart#L32
+      // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/scheduler/binding.dart#L676
+      >SchedulerBinding.ensureVisualUpdate()
+```
 
+## onDrawFrame
+
+由 native 调用
+
+```
+:Window.onDrawFrame()
+  // 在 SchedulerBinding.ensureFrameCallbacksRegistered 中 Window.onDrawFrame = SchedulerBinding._handleDrawFrame
+  // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/scheduler/binding.dart#L658
+  :SchedulerBinding._handleDrawFrame()
+    handleDrawFrame()
+      // TODO 分析具体过程
+      Timeline.finishSync()
+
+      _schedulerPhase = SchedulerPhase.persistentCallbacks;
+      for (FrameCallback callback in _persistentCallbacks)
+        _invokeFrameCallback(callback, _currentFrameTimeStamp);
+
+      // POST-FRAME CALLBACKS
+      _schedulerPhase = SchedulerPhase.postFrameCallbacks;
+      final List<FrameCallback> localPostFrameCallbacks =
+          List<FrameCallback>.from(_postFrameCallbacks);
+      _postFrameCallbacks.clear();
+      for (FrameCallback callback in localPostFrameCallbacks)
+        _invokeFrameCallback(callback, _currentFrameTimeStamp)
+
+      _schedulerPhase = SchedulerPhase.idle
+      Timeline.finishSync()
+      _currentFrameTimeStamp = null
+
+      // _persistentCallbacks 的其中一个 RendererBinding._handlePersistentFrameCallback
+        :RendererBinding._handlePersistentFrameCallback()
+          drawFrame()
+            // 跳转 drawFrame
 ```
