@@ -135,6 +135,8 @@ ComponentElement.performRebuild
             // (RenderObject child, dynamic slot)
               // >SingleChildRenderObjectElement.insertChildRenderObject
                 renderObject.child = child
+              // >MultiChildRenderObjectElement.insertChildRenderObject
+                // TODO child.attach
             final ParentDataElement<RenderObjectWidget> parentDataElement = _findAncestorParentDataElement()
             if (parentDataElement != null)
               _updateParentData(parentDataElement.widget)
@@ -228,6 +230,7 @@ RenderObjectElement.performRebuild
       // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/rendering/binding.dart#L32
       // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/scheduler/binding.dart#L676
       >SchedulerBinding.ensureVisualUpdate()
+        // 跳转 ensureVisualUpdate
 ```
 
 ## onDrawFrame
