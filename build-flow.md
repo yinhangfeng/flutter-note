@@ -139,6 +139,7 @@ ComponentElement.performRebuild
             // (RenderObject child, dynamic slot)
               // >SingleChildRenderObjectElement.insertChildRenderObject(RenderObject child, dynamic slot)
                 renderObject.child = child
+                  // 跳转 RenderObject.attach
               // >MultiChildRenderObjectElement.insertChildRenderObject(RenderObject child, Element slot)
                 renderObject.insert(child, after: slot?.renderObject);
                 // ContainerRenderObjectMixin.insert(ChildType child, { ChildType after })
@@ -181,6 +182,91 @@ RenderObjectElement.performRebuild
   widget.updateRenderObject(this, renderObject)
   _dirty = false
 ```
+
+## RenderObjectWithChildMixin.child
+
+```
+:RenderObjectWithChildMixin.child // set child(ChildType value)
+  if (_child != null)
+    dropChild(_child)
+      // AbstractNode.dropChild(RenderObject child)
+      child._parent = null
+      if (attached)
+        child.detach()
+          _owner = null
+      
+        // >RenderObject.dropChild(RenderObject child)
+          child._cleanRelayoutBoundary()
+          child.parentData.detach()
+          child.parentData = null
+          super.dropChild(child)
+          markNeedsLayout()
+          markNeedsCompositingBitsUpdate()
+          markNeedsSemanticsUpdate()
+  _child = value
+  if (_child != null)
+    adoptChild(_child)
+      // AbstractNode.adoptChild(covariant AbstractNode child)
+      child._parent = this
+      if (attached)
+        child.attach(_owner)
+      redepthChild(child)
+
+      // >RenderObject.adoptChild(RenderObject child)
+        setupParentData(child)
+        markNeedsLayout()
+        markNeedsCompositingBitsUpdate()
+        markNeedsSemanticsUpdate()
+        super.adoptChild(child)
+```
+
+## RenderObject.attach
+
+```
+:AbstractNode.attach(covariant Object owner)
+  _owner = owner
+
+  // >RenderObject.attach(PipelineOwner owner)
+    super.attach(owner)
+    if (_needsLayout && _relayoutBoundary != null) {
+      _needsLayout = false;
+      markNeedsLayout();
+    }
+    if (_needsCompositingBitsUpdate) {
+      _needsCompositingBitsUpdate = false;
+      markNeedsCompositingBitsUpdate();
+    }
+    if (_needsPaint && _layer != null) {
+      _needsPaint = false;
+      markNeedsPaint();
+    }
+    if (_needsSemanticsUpdate && _semanticsConfiguration.isSemanticBoundary) {
+      _needsSemanticsUpdate = false;
+      markNeedsSemanticsUpdate();
+    }
+
+    // >RenderObjectWithChildMixin.attach
+      super.attach(owner)
+      // if _child != null
+      _child.attach(owner)
+```
+
+## RenderView
+
+```
+:RendererBinding.initInstances()
+  initRenderView()
+    renderView = RenderView(configuration: createViewConfiguration(), window: window)
+    // set renderView(RenderView value)
+      _pipelineOwner.rootNode = value
+    renderView.prepareInitialFrame()
+      _rootNode?.detach()
+      _rootNode = value
+      _rootNode?.attach(this)
+        // AbstractNode.attach
+```
+
+
 
 ## ensureVisualUpdate
 
