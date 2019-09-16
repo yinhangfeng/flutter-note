@@ -68,7 +68,7 @@ ComponentElement.performRebuild
     }
     return inflateWidget(newWidget, newSlot);
 
-    /// deactivateChild
+    /// deactivateChild(Element child)
       child._parent = null
         child.detachRenderObject()
           visitChildren((child) {
@@ -83,7 +83,7 @@ ComponentElement.performRebuild
             _slot = null;
         owner._inactiveElements.add(child)
 
-    /// updateSlotForChild
+    /// updateSlotForChild(Element child, dynamic newSlot)
       void visit(Element element) {
         element._updateSlot(newSlot);
           _slot = newSlot
@@ -96,8 +96,12 @@ ComponentElement.performRebuild
       }
       visit(child);
 
-    /// inflateWidget
-      // key 为 GlobalKey 的话 执行复用的相关逻辑
+    /// inflateWidget(Widget newWidget, dynamic newSlot): Element
+      // newWidget.key 为 GlobalKey 的话 执行复用的相关逻辑
+        newChild: Element = _retakeInactiveElement(key, newWidget)
+        newChild._activateWithParent(this, newSlot)
+        updatedChild: Element = updateChild(newChild, newWidget, newSlot)
+        updatedChild
 
       let newChild: Element = newWidget.createElement()
         // Element constructor
@@ -133,10 +137,18 @@ ComponentElement.performRebuild
               // 查找最近的 RenderObjectElement 祖先
             _ancestorRenderObjectElement?.insertChildRenderObject(renderObject, newSlot)
             // (RenderObject child, dynamic slot)
-              // >SingleChildRenderObjectElement.insertChildRenderObject
+              // >SingleChildRenderObjectElement.insertChildRenderObject(RenderObject child, dynamic slot)
                 renderObject.child = child
-              // >MultiChildRenderObjectElement.insertChildRenderObject
-                // TODO child.attach
+              // >MultiChildRenderObjectElement.insertChildRenderObject(RenderObject child, Element slot)
+                renderObject.insert(child, after: slot?.renderObject);
+                // ContainerRenderObjectMixin.insert(ChildType child, { ChildType after })
+                  adoptChild(child)
+                    // TODO
+                  _insertIntoChildList(child, after: after)
+                    // TODO
+              // >RenderObjectToWidgetElement.insertChildRenderObject(RenderObject child, dynamic slot)
+                assert(slot == _rootChildSlot)
+                renderObject.child = child
             final ParentDataElement<RenderObjectWidget> parentDataElement = _findAncestorParentDataElement()
             if (parentDataElement != null)
               _updateParentData(parentDataElement.widget)

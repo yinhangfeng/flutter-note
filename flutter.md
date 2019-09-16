@@ -117,6 +117,8 @@ BuildContext
       < RootRenderObjectElement
         assignOwner(BuildOwner owner)
 
+        < RenderObjectToWidgetElement
+
     < ComponentElement
       _child: Element
       _firstBuild()
