@@ -139,17 +139,18 @@ ComponentElement.performRebuild
             // (RenderObject child, dynamic slot)
               // >SingleChildRenderObjectElement.insertChildRenderObject(RenderObject child, dynamic slot)
                 renderObject.child = child
-                  // 跳转 RenderObject.attach
+                  // 跳转 RenderObjectWithChildMixin.child
               // >MultiChildRenderObjectElement.insertChildRenderObject(RenderObject child, Element slot)
                 renderObject.insert(child, after: slot?.renderObject);
                 // ContainerRenderObjectMixin.insert(ChildType child, { ChildType after })
                   adoptChild(child)
-                    // TODO
+                    // RenderObjectWithChildMixin.child adoptChild
                   _insertIntoChildList(child, after: after)
                     // TODO
               // >RenderObjectToWidgetElement.insertChildRenderObject(RenderObject child, dynamic slot)
                 assert(slot == _rootChildSlot)
                 renderObject.child = child
+                  // 跳转 RenderObjectWithChildMixin.child
             final ParentDataElement<RenderObjectWidget> parentDataElement = _findAncestorParentDataElement()
             if (parentDataElement != null)
               _updateParentData(parentDataElement.widget)
@@ -266,8 +267,6 @@ RenderObjectElement.performRebuild
         // AbstractNode.attach
 ```
 
-
-
 ## ensureVisualUpdate
 
 ```
@@ -279,26 +278,36 @@ RenderObjectElement.performRebuild
     _hasScheduledFrame = true
 ```
 
-## drawFrame
+## markNeedsLayout
 
 ```
-:WidgetsBinding.drawFrame()
+:RenderObject.markNeedsLayout()
+  if (_relayoutBoundary != this) {
+    markParentNeedsLayout()
+      _needsLayout = true
+      if (!_doingThisLayoutWithCallback) {
+        parent.markNeedsLayout()
+      }
+  } else {
+    _needsLayout = true
+    if (owner != null) {
+      owner._nodesNeedingLayout.add(this)
+      owner.requestVisualUpdate()
+        // 跳转 PipelineOwner.requestVisualUpdate
+    }
+  }
 
-  // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/widgets/framework.dart#L2294
-  buildOwner:BuildOwner.buildScope(renderViewElement)
-    // TODO 分析具体过程
-    // foreach _dirtyElements
-    :Element.rebuild()
-  super:RendererBinding.drawFrame()
-    // TODO 分析具体过程
-    pipelineOwner.flushLayout();
-    pipelineOwner.flushCompositingBits();
-    pipelineOwner.flushPaint();
-    renderView.compositeFrame(); // this sends the bits to the GPU
-    pipelineOwner.flushSemantics(); // this also sends the semantics to the OS.
-
-    // > WidgetsBinding.drawFrame
-  buildOwner.finalizeTree()
+  // >RenderBox.markNeedsLayout
+    if ((_cachedBaselines != null && _cachedBaselines.isNotEmpty) ||
+        (_cachedIntrinsicDimensions != null && _cachedIntrinsicDimensions.isNotEmpty)) {
+      _cachedBaselines?.clear();
+      _cachedIntrinsicDimensions?.clear();
+      if (parent is RenderObject) {
+        markParentNeedsLayout();
+        return;
+      }
+    }
+    super.markNeedsLayout()
 ```
 
 ## markNeedsPaint
@@ -319,16 +328,21 @@ RenderObjectElement.performRebuild
     if (owner != null)
       owner.requestVisualUpdate();
   }
-
   // PipelineOwner.requestVisualUpdate
-  // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/rendering/object.dart#L794
-    onNeedVisualUpdate()
-      // RendererBinding.initInstances create PipelineOwner
-      // PipelineOwner.onNeedVisualUpdate = RendererBinding.ensureVisualUpdate
-      // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/rendering/binding.dart#L32
-      // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/scheduler/binding.dart#L676
-      >SchedulerBinding.ensureVisualUpdate()
-        // 跳转 ensureVisualUpdate
+```
+
+## PipelineOwner.requestVisualUpdate
+
+```
+// PipelineOwner.requestVisualUpdate
+// https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/rendering/object.dart#L794
+  onNeedVisualUpdate()
+    // RendererBinding.initInstances create PipelineOwner
+    // PipelineOwner.onNeedVisualUpdate = RendererBinding.ensureVisualUpdate
+    // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/rendering/binding.dart#L32
+    // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/scheduler/binding.dart#L676
+    >SchedulerBinding.ensureVisualUpdate()
+      // 跳转 ensureVisualUpdate
 ```
 
 ## onDrawFrame
@@ -364,4 +378,79 @@ RenderObjectElement.performRebuild
         :RendererBinding._handlePersistentFrameCallback()
           drawFrame()
             // 跳转 drawFrame
+```
+
+## drawFrame
+
+```
+:WidgetsBinding.drawFrame()
+
+  // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/widgets/framework.dart#L2294
+  buildOwner:BuildOwner.buildScope(renderViewElement)
+    // TODO 分析具体过程
+    // foreach _dirtyElements
+    :Element.rebuild()
+  super:RendererBinding.drawFrame()
+    pipelineOwner.flushLayout();
+      // 跳转 flushLayout
+    pipelineOwner.flushCompositingBits();
+    pipelineOwner.flushPaint();
+      // 跳转 flushPaint
+    renderView.compositeFrame(); // this sends the bits to the GPU
+    pipelineOwner.flushSemantics(); // this also sends the semantics to the OS.
+
+    // > WidgetsBinding.drawFrame
+  buildOwner.finalizeTree()
+```
+
+## flushLayout
+
+```
+:PipelineOwner.flushLayout()
+  while (_nodesNeedingLayout.isNotEmpty) {
+    final List<RenderObject> dirtyNodes = _nodesNeedingLayout;
+    _nodesNeedingLayout = <RenderObject>[];
+    for (RenderObject node in dirtyNodes..sort((RenderObject a, RenderObject b) => a.depth - b.depth)) {
+      if (node._needsLayout && node.owner == this)
+        node._layoutWithoutResize();
+        // RenderObject._layoutWithoutResize()
+          performLayout()
+          markNeedsSemanticsUpdate()
+          _needsLayout = false
+          markNeedsPaint()
+    }
+  }
+```
+
+## flushPaint
+
+```
+:PipelineOwner.flushPaint()
+  final List<RenderObject> dirtyNodes = _nodesNeedingPaint;
+  _nodesNeedingPaint = <RenderObject>[];
+  // Sort the dirty nodes in reverse order (deepest first).
+  for (RenderObject node in dirtyNodes..sort((RenderObject a, RenderObject b) => b.depth - a.depth)) {
+    assert(node._layer != null);
+    if (node._needsPaint && node.owner == this) {
+      if (node._layer.attached) {
+        PaintingContext.repaintCompositedChild(node);
+          PaintingContext._repaintCompositedChild(child)
+            OffsetLayer childLayer = child._layer;
+            if (childLayer == null) {
+              child._layer = childLayer = OffsetLayer();
+            } else {
+              childLayer.removeAllChildren();
+            }
+            childContext ??= PaintingContext(child._layer, child.paintBounds);
+            child._paintWithContext(childContext, Offset.zero);
+              if (_needsLayout)
+                return;
+              _needsPaint = false;
+              paint(context, offset);
+            childContext.stopRecordingIfNeeded();
+      } else {
+        node._skippedPaintingOnLayer();
+      }
+    }
+  }
 ```

@@ -205,6 +205,9 @@ AbstractNode
       Curve curve,
     })
 
+    // The root of the render tree
+    < RenderView
+
     < RenderBox
       _cachedIntrinsicDimensions: Map<_IntrinsicDimensionsCacheEntry, double>
       _computeIntrinsicDimension(_IntrinsicDimension dimension, double argument, double computer(double argument)): double
