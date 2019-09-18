@@ -146,7 +146,32 @@ ComponentElement.performRebuild
                   adoptChild(child)
                     // RenderObjectWithChildMixin.child adoptChild
                   _insertIntoChildList(child, after: after)
-                    // TODO
+                    final ParentDataType childParentData = child.parentData;
+                    _childCount += 1;
+                    if (after == null) {
+                      // insert at the start (_firstChild)
+                      childParentData.nextSibling = _firstChild;
+                      if (_firstChild != null) {
+                        final ParentDataType _firstChildParentData = _firstChild.parentData;
+                        _firstChildParentData.previousSibling = child;
+                      }
+                      _firstChild = child;
+                      _lastChild ??= child;
+                    } else {
+                      final ParentDataType afterParentData = after.parentData;
+                      if (afterParentData.nextSibling == null) {
+                        childParentData.previousSibling = after;
+                        afterParentData.nextSibling = child;
+                        _lastChild = child;
+                      } else {
+                        childParentData.nextSibling = afterParentData.nextSibling;
+                        childParentData.previousSibling = after;
+                        final ParentDataType childPreviousSiblingParentData = childParentData.previousSibling.parentData;
+                        final ParentDataType childNextSiblingParentData = childParentData.nextSibling.parentData;
+                        childPreviousSiblingParentData.nextSibling = child;
+                        childNextSiblingParentData.previousSibling = child;
+                      }
+                    }
               // >RenderObjectToWidgetElement.insertChildRenderObject(RenderObject child, dynamic slot)
                 assert(slot == _rootChildSlot)
                 renderObject.child = child
@@ -422,6 +447,32 @@ RenderObjectElement.performRebuild
   }
 ```
 
+## layout
+
+```
+:RenderObject.layout(Constraints constraints, { bool parentUsesSize = false })
+  RenderObject relayoutBoundary;
+  if (!parentUsesSize || sizedByParent || constraints.isTight || parent is! RenderObject) {
+    relayoutBoundary = this;
+  } else {
+    final RenderObject parent = this.parent;
+    relayoutBoundary = parent._relayoutBoundary;
+  }
+  if (!_needsLayout && constraints == _constraints && relayoutBoundary == _relayoutBoundary) {
+    return;
+  }
+  _constraints = constraints;
+  _relayoutBoundary = relayoutBoundary;
+
+  if (sizedByParent) {
+    performResize();
+  }
+  performLayout();
+  markNeedsSemanticsUpdate();
+  _needsLayout = false;
+  markNeedsPaint();
+```
+
 ## flushPaint
 
 ```
@@ -430,7 +481,6 @@ RenderObjectElement.performRebuild
   _nodesNeedingPaint = <RenderObject>[];
   // Sort the dirty nodes in reverse order (deepest first).
   for (RenderObject node in dirtyNodes..sort((RenderObject a, RenderObject b) => b.depth - a.depth)) {
-    assert(node._layer != null);
     if (node._needsPaint && node.owner == this) {
       if (node._layer.attached) {
         PaintingContext.repaintCompositedChild(node);
