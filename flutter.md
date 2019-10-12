@@ -16,6 +16,7 @@ Widget
     createState: State
 
   < RenderObjectWidget
+    createElement: RenderObjectElement
     createRenderObject(BuildContext context): RenderObject
     updateRenderObject(BuildContext context, covariant RenderObject renderObject)
     didUnmountRenderObject(covariant RenderObject renderObject)
@@ -59,7 +60,7 @@ BuildContext
   // The [BuildOwner] for this context. The [BuildOwner] is in charge of
   // managing the rendering pipeline for this context.
   owner: BuildOwner
-  findRenderObject: RenderObject
+  findRenderObject(): RenderObject
   size: Size
 
   < Element
