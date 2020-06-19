@@ -22,191 +22,243 @@ flutter 1.10.1
       element._inDirtyList = true
 ```
 
-## build
-
-Element.rebuild
+## Element.rebuild
 
 ```
 :Element.rebuild()
+  if (!_active || !_dirty)
+    return;
   performRebuild()
-```
+  // >ComponentElement.performRebuild
+  // https://github.com/flutter/flutter/blob/v1.10.0/packages/flutter/lib/src/widgets/framework.dart#L3927
+    let built: Widget = build()
+    >StatelessElement.build
+      widget:StatelessWidget.build(this)
+    >StatefulElement.build
+      state:State.build(this)
+    _dirty = false
 
-ComponentElement.performRebuild
+    // built 为 _child 新的 _widget
+    _child: Element = updateChild(_child, built, slot)
 
-```
-// https://github.com/flutter/flutter/blob/v1.10.0/packages/flutter/lib/src/widgets/framework.dart#L3927
-:ComponentElement.performRebuild
-  let built: Widget = build()
-  >StatelessElement.build
-    widget:StatelessWidget.build
-  >StatefulElement.build
-    state:State.build
-  _dirty = false
-
-  // built 为 _child 新的 _widget
-  _child: Element = updateChild(_child, built, slot)
-  // (Element child, Widget newWidget, dynamic newSlot)
-  // https://github.com/flutter/flutter/blob/v1.10.0/packages/flutter/lib/src/widgets/framework.dart#L2864
-    if (newWidget == null) {
-      if (child != null)
-        deactivateChild(child);
-      return null;
+  // >StatefulElement.performRebuild
+    if (_didChangeDependencies) {
+      _state.didChangeDependencies();
+      _didChangeDependencies = false;
     }
-    if (child != null) {
-      if (child.widget == newWidget) {
-        if (child.slot != newSlot)
-          updateSlotForChild(child, newSlot);
-        return child;
-      }
-      if (Widget.canUpdate(child.widget, newWidget)) {
-        if (child.slot != newSlot)
-          updateSlotForChild(child, newSlot);
-        child.update(newWidget);
-        return child;
-      }
+    super.performRebuild();
+
+  // >RenderObjectElement.performRebuild
+    widget.updateRenderObject(this, renderObject)
+    _dirty = false
+```
+
+## Element.updateChild
+
+```
+// Element updateChild(Element child, Widget newWidget, dynamic newSlot)
+// https://github.com/flutter/flutter/blob/v1.10.0/packages/flutter/lib/src/widgets/framework.dart#L2864
+  if (newWidget == null) {
+    if (child != null)
       deactivateChild(child);
+    return null;
+  }
+  if (child != null) {
+    if (child.widget == newWidget) {
+      if (child.slot != newSlot)
+        updateSlotForChild(child, newSlot);
+      return child;
     }
-    return inflateWidget(newWidget, newSlot);
+    if (Widget.canUpdate(child.widget, newWidget)) {
+      if (child.slot != newSlot)
+        updateSlotForChild(child, newSlot);
+      child.update(newWidget);
+      return child;
+    }
+    deactivateChild(child);
+  }
+  return inflateWidget(newWidget, newSlot);
 
-    /// deactivateChild(Element child)
-      child._parent = null
-        child.detachRenderObject()
-          visitChildren((child) {
-            child.detachRenderObject()
-          })
-          _slot = null
-          // >RenderObjectElement.detachRenderObject
-            if (_ancestorRenderObjectElement != null) {
-              _ancestorRenderObjectElement.removeChildRenderObject(renderObject)
-              _ancestorRenderObjectElement = null
-            }
-            _slot = null;
-        owner._inactiveElements.add(child)
+  /// deactivateChild(Element child)
+    child._parent = null
+      child.detachRenderObject()
+        visitChildren((child) {
+          child.detachRenderObject()
+        })
+        _slot = null
+        // >RenderObjectElement.detachRenderObject
+          if (_ancestorRenderObjectElement != null) {
+            _ancestorRenderObjectElement.removeChildRenderObject(renderObject)
+            _ancestorRenderObjectElement = null
+          }
+          _slot = null;
+      owner._inactiveElements.add(child)
+        // _InactiveElements.add
+        if (element._active)
+          _deactivateRecursively(element); // 父 element 先于子 element deactivate
+            element.deactivate()
+            // Element.deactivate
+              for (final InheritedElement dependency in _dependencies)
+                dependency._dependents.remove(this)
+              _inheritedWidgets = null;
+              _active = false;
+            // >StatefulElement.deactivate
+              _state.deactivate();
+              super.deactivate();
+        _elements.add(element)
 
-    /// updateSlotForChild(Element child, dynamic newSlot)
-      void visit(Element element) {
-        element._updateSlot(newSlot);
-          _slot = newSlot
-          
-          // >RenderObjectElement._updateSlot
-            super._updateSlot(newSlot);
-            _ancestorRenderObjectElement.moveChildRenderObject(renderObject, slot);
-        if (element is! RenderObjectElement)
-          element.visitChildren(visit);
-      }
-      visit(child);
-
-    /// inflateWidget(Widget newWidget, dynamic newSlot): Element
-      // newWidget.key 为 GlobalKey 的话 执行复用的相关逻辑
-        newChild: Element = _retakeInactiveElement(key, newWidget)
-        newChild._activateWithParent(this, newSlot)
-        updatedChild: Element = updateChild(newChild, newWidget, newSlot)
-        updatedChild
-
-      let newChild: Element = newWidget.createElement()
-        // Element constructor
-        // newChild._widget 为 newWidget
-      newChild.mount(this, newSlot)
-      // (Element parent, dynamic newSlot)
-        parent
-        slot
-        depth
-        active = true
-        owner
-        // key 为 GlobalKey 的话 key._register(this);
-        _updateInheritance()
-          _inheritedWidgets = _parent?._inheritedWidgets;
-          // InheritedElement 覆盖了 Element 的实现
-            // ...
+  /// updateSlotForChild(Element child, dynamic newSlot)
+    void visit(Element element) {
+      element._updateSlot(newSlot);
+        _slot = newSlot
         
-        // >ComponentElement.mount
-          super.mount()
-          _firstBuild()
-            rebuild()
-            // >StatefulElement._firstBuild
-              _state.initState()
-              _state.didChangeDependencies()
-              super._firstBuild()
+        // >RenderObjectElement._updateSlot
+          super._updateSlot(newSlot);
+          _ancestorRenderObjectElement.moveChildRenderObject(renderObject, slot);
+      if (element is! RenderObjectElement)
+        element.visitChildren(visit);
+    }
+    visit(child);
 
-        // >RenderObjectElement.mount
-          super.mount()
-          _renderObject = widget.createRenderObject(this)
-          attachRenderObject(newSlot)
-            _slot = newSlot
-            _ancestorRenderObjectElement = _findAncestorRenderObjectElement()
-              // 查找最近的 RenderObjectElement 祖先
-            _ancestorRenderObjectElement?.insertChildRenderObject(renderObject, newSlot)
-            // (RenderObject child, dynamic slot)
-              // >SingleChildRenderObjectElement.insertChildRenderObject(RenderObject child, dynamic slot)
-                renderObject.child = child
-                  // 跳转 RenderObjectWithChildMixin.child
-              // >MultiChildRenderObjectElement.insertChildRenderObject(RenderObject child, Element slot)
-                renderObject.insert(child, after: slot?.renderObject);
-                // ContainerRenderObjectMixin.insert(ChildType child, { ChildType after })
-                  adoptChild(child)
-                    // RenderObjectWithChildMixin.child adoptChild
-                  _insertIntoChildList(child, after: after)
-                    final ParentDataType childParentData = child.parentData;
-                    _childCount += 1;
-                    if (after == null) {
-                      // insert at the start (_firstChild)
-                      childParentData.nextSibling = _firstChild;
-                      if (_firstChild != null) {
-                        final ParentDataType _firstChildParentData = _firstChild.parentData;
-                        _firstChildParentData.previousSibling = child;
-                      }
-                      _firstChild = child;
-                      _lastChild ??= child;
-                    } else {
-                      final ParentDataType afterParentData = after.parentData;
-                      if (afterParentData.nextSibling == null) {
-                        childParentData.previousSibling = after;
-                        afterParentData.nextSibling = child;
-                        _lastChild = child;
-                      } else {
-                        childParentData.nextSibling = afterParentData.nextSibling;
-                        childParentData.previousSibling = after;
-                        final ParentDataType childPreviousSiblingParentData = childParentData.previousSibling.parentData;
-                        final ParentDataType childNextSiblingParentData = childParentData.nextSibling.parentData;
-                        childPreviousSiblingParentData.nextSibling = child;
-                        childNextSiblingParentData.previousSibling = child;
-                      }
-                    }
-              // >RenderObjectToWidgetElement.insertChildRenderObject(RenderObject child, dynamic slot)
-                assert(slot == _rootChildSlot)
-                renderObject.child = child
-                  // 跳转 RenderObjectWithChildMixin.child
-            final ParentDataElement<RenderObjectWidget> parentDataElement = _findAncestorParentDataElement()
-            if (parentDataElement != null)
-              _updateParentData(parentDataElement.widget)
-          _dirty = false
-      newChild
+  /// inflateWidget(Widget newWidget, dynamic newSlot): Element
+    // newWidget.key 为 GlobalKey 的话 执行复用的相关逻辑
+      newChild: Element = _retakeInactiveElement(key, newWidget)
+      newChild._activateWithParent(this, newSlot)
+      updatedChild: Element = updateChild(newChild, newWidget, newSlot)
+      updatedChild
 
-    /// update
-      _widget = newWidget
-      // >StatelessElement.update
-        super.update()
-        _dirty = true
-        rebuild()
-      // >StatefulElement.update
-        super.update()
-        _dirty = true
+    let newChild: Element = newWidget.createElement()
+      // Element constructor
+        newChild._widget 为 newWidget
+      // StatefulElement constructor
+        _state = widget.createState()
+        _state._element = this
         _state._widget = widget
-        rebuild()
-      // >RenderObjectElement.update
-        super.update()
-        widget.updateRenderObject(this, renderObject)
-          // 一般会修改 renderObject 的一些属性
-          // https://github.com/flutter/flutter/blob/v1.10.0/packages/flutter/lib/src/material/radio.dart#L240
+    newChild.mount(this, newSlot)
+    // Element.mount(Element parent, dynamic newSlot)
+      parent
+      slot
+      depth
+      active = true
+      owner
+      // key 为 GlobalKey 的话 key._register(this);
+      _updateInheritance()
+        _inheritedWidgets = _parent?._inheritedWidgets;
+        // InheritedElement 覆盖了 Element 的实现
+          // ...
+      
+      // >ComponentElement.mount
+        super.mount()
+        _firstBuild()
+          rebuild()
+          // >StatefulElement._firstBuild
+            _state.initState()
+            _state.didChangeDependencies()
+            super._firstBuild()
+
+      // >RenderObjectElement.mount
+        super.mount()
+        _renderObject = widget.createRenderObject(this)
+        attachRenderObject(newSlot)
+          _slot = newSlot
+          _ancestorRenderObjectElement = _findAncestorRenderObjectElement()
+            // 查找最近的 RenderObjectElement 祖先
+          _ancestorRenderObjectElement?.insertChildRenderObject(renderObject, newSlot)
+          // (RenderObject child, dynamic slot)
+            // >SingleChildRenderObjectElement.insertChildRenderObject(RenderObject child, dynamic slot)
+              renderObject.child = child
+                // 跳转 RenderObjectWithChildMixin.child
+            // >MultiChildRenderObjectElement.insertChildRenderObject(RenderObject child, Element slot)
+              renderObject.insert(child, after: slot?.renderObject);
+              // ContainerRenderObjectMixin.insert(ChildType child, { ChildType after })
+                adoptChild(child)
+                  // RenderObjectWithChildMixin.child adoptChild
+                _insertIntoChildList(child, after: after)
+                  final ParentDataType childParentData = child.parentData;
+                  _childCount += 1;
+                  if (after == null) {
+                    // insert at the start (_firstChild)
+                    childParentData.nextSibling = _firstChild;
+                    if (_firstChild != null) {
+                      final ParentDataType _firstChildParentData = _firstChild.parentData;
+                      _firstChildParentData.previousSibling = child;
+                    }
+                    _firstChild = child;
+                    _lastChild ??= child;
+                  } else {
+                    final ParentDataType afterParentData = after.parentData;
+                    if (afterParentData.nextSibling == null) {
+                      childParentData.previousSibling = after;
+                      afterParentData.nextSibling = child;
+                      _lastChild = child;
+                    } else {
+                      childParentData.nextSibling = afterParentData.nextSibling;
+                      childParentData.previousSibling = after;
+                      final ParentDataType childPreviousSiblingParentData = childParentData.previousSibling.parentData;
+                      final ParentDataType childNextSiblingParentData = childParentData.nextSibling.parentData;
+                      childPreviousSiblingParentData.nextSibling = child;
+                      childNextSiblingParentData.previousSibling = child;
+                    }
+                  }
+            // >RenderObjectToWidgetElement.insertChildRenderObject(RenderObject child, dynamic slot)
+              assert(slot == _rootChildSlot)
+              renderObject.child = child
+                // 跳转 RenderObjectWithChildMixin.child
+          final ParentDataElement<RenderObjectWidget> parentDataElement = _findAncestorParentDataElement()
+          if (parentDataElement != null)
+            _updateParentData(parentDataElement.widget)
         _dirty = false
+        // >SingleChildRenderObjectElement.mount
+          super.mount
+          child = updateChild(_child, widget.child, null);
+        // >MultiChildRenderObjectElement.mount
+          _children = List<Element>(widget.children.length);
+          Element previousChild;
+          for (int i = 0; i < _children.length; i += 1) {
+            final Element newChild = inflateWidget(widget.children[i], IndexedSlot<Element>(i, previousChild));
+            _children[i] = newChild;
+            previousChild = newChild;
+          }
+    newChild
+
+  /// update
+  Element.update(Widget newWidget)
+    _widget = newWidget
+    // >StatelessElement.update
+      super.update()
+      _dirty = true
+      rebuild()
+    // >StatefulElement.update
+      super.update()
+      _dirty = true
+      _state._widget = widget
+      _state.didUpdateWidget(oldWidget)
+      rebuild()
+    // >RenderObjectElement.update
+      super.update()
+      widget.updateRenderObject(this, renderObject)
+        // 一般会修改 renderObject 的一些属性
+        // https://github.com/flutter/flutter/blob/v1.10.0/packages/flutter/lib/src/material/radio.dart#L240
+      _dirty = false
+      // >SingleChildRenderObjectElement.update
+        super.update()
+        _child = updateChild(_child, widget.child, null)
+
+      // >MultiChildRenderObjectElement.update
+        super.update()
+        _children = updateChildren(_children, widget.children, forgottenChildren: _forgottenChildren);
+        _forgottenChildren.clear();
 ```
 
-RenderObjectElement.performRebuild
-
+## RenderObjectElement.updateChildren
 ```
-:RenderObjectElement.performRebuild
-  widget.updateRenderObject(this, renderObject)
-  _dirty = false
+// List<Element> updateChildren(List<Element> oldChildren, List<Widget> newWidgets, { Set<Element> forgottenChildren })
+1. 从前往后遍历新旧列表，执行 updateChild 直到 Widget.canUpdate 为 false
+2. 从后往前遍历新旧列表，更新 newChildrenBottom oldChildrenBottom 直到 Widget.canUpdate 为 false
+3. 遍历旧列表中间部分，将有 key 的 child 放入 oldKeyedChildren 没有的执行 deactivateChild
+4. 遍历新列表中间部分，从 oldKeyedChildren 获取 oldChild，执行 updateChild
+5. 遍历新旧列表步骤2 中的部分，执行 updateChild
+6. 对 oldKeyedChildren 中剩余的部分执行 deactivateChild
 ```
 
 ## RenderObjectWithChildMixin.child
@@ -426,6 +478,23 @@ RenderObjectElement.performRebuild
 
     // > WidgetsBinding.drawFrame
   buildOwner.finalizeTree()
+    lockState(() {
+      _inactiveElements._unmountAll(); // this unregisters the GlobalKeys
+        // element.visitChildren children 先 unmount
+        element.unmount()
+        // Element.unmount()
+          if (key is GlobalKey) {
+            key._unregister(this);
+          }
+        // StatefulElement.unmount()
+          super.unmount()
+          _state.dispose();
+          _state._element = null;
+          _state = null;
+        // RenderObject.unmount()
+          super.unmount()
+          widget.didUnmountRenderObject(renderObject);
+    });
 ```
 
 ## flushLayout
