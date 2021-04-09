@@ -15,7 +15,7 @@ https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/widgets
 
 Android
 
-https://github.com/flutter/engine/blob/master/shell/platform/android/io/flutter/view/FlutterView.java#L663
+https://github.com/flutter/engine/blob/master/shell/platform/android/io/flutter/view/FlutterView.java#L754
 ```
 :FlutterView.updateViewportMetrics()
   mNativeView.getFlutterJNI().setViewportMetrics()
@@ -23,7 +23,7 @@ https://github.com/flutter/engine/blob/master/shell/platform/android/io/flutter/
 
 cpp
 
-https://github.com/flutter/engine/blob/master/runtime/runtime_controller.cc#L164
+https://github.com/flutter/engine/blob/master/runtime/runtime_controller.cc#L136
 ```
 :RuntimeController.SetViewportMetrics()
   window->UpdateWindowMetrics(metrics)
@@ -31,7 +31,7 @@ https://github.com/flutter/engine/blob/master/runtime/runtime_controller.cc#L164
 
 dart
 
-https://github.com/flutter/engine/blob/master/lib/ui/hooks.dart#L63
+https://github.com/flutter/engine/blob/master/lib/ui/hooks.dart#L31
 ```
 _updateWindowMetrics()
   _invoke(window.onMetricsChanged, window._onMetricsChangedZone)
