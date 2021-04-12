@@ -7,7 +7,7 @@ void runApp(Widget app) {
 ```
 
 ## WidgetsFlutterBinding.ensureInitialized()
-```
+```dart
 // WidgetsFlutterBinding.ensureInitialized()
 // 创建 WidgetsFlutterBinding 实例
 // https://github.com/flutter/flutter/blob/master/packages/flutter/lib/src/widgets/binding.dart#L1241
@@ -204,7 +204,7 @@ RenderObjectToWidgetElement<T> attachToRenderTree(BuildOwner owner, [ RenderObje
 ```
 
 ## SchedulerBinding.scheduleWarmUpFrame()
-```
+```dart
 // SchedulerBinding.scheduleWarmUpFrame()
 void scheduleWarmUpFrame() {
   if (_warmUpFrame || schedulerPhase != SchedulerPhase.idle)
