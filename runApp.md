@@ -55,6 +55,9 @@ void initInstances() {
     ..onSemanticsAction = _handleSemanticsAction;
   initRenderView();
   // ...
+  // 注册每一帧的 darwFrame 回调
+  addPersistentFrameCallback(_handlePersistentFrameCallback);
+  // ...
 }
 
 
