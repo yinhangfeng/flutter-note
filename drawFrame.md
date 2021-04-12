@@ -1,6 +1,6 @@
 ## darwFrame
 
-```
+```dart
 // native 调用 _beginFrame
 // https://github.com/flutter/engine/blob/master/lib/ui/hooks.dart#L113
 @pragma('vm:entry-point')
@@ -181,3 +181,26 @@ void drawFrame() {
   }
 }
 ```
+
+
+## markNeedsBuild
+```
+State.setState -> Element.markNeedsBuild -> BuildOwner.scheduleBuildFor()
+-> BuildOwner.onBuildScheduled() -> WidgetsBinding._handleBuildScheduled() -> SchedulerBinding.ensureVisualUpdate()
+```
+
+## markNeedsLayout
+```
+RenderObject.markNeedsLayout() -> PipelineOwner.requestVisualUpdate() -> SchedulerBinding.ensureVisualUpdate()
+```
+
+## markNeedsPaint
+```
+RenderObject.markNeedsLayout() -> PipelineOwner.requestVisualUpdate() -> SchedulerBinding.ensureVisualUpdate()
+```
+
+## ensureVisualUpdate
+```
+SchedulerBinding.ensureVisualUpdate() -> SchedulerBinding.scheduleFrame() -> SingletonFlutterWindow.scheduleFrame() -> PlatformDispatcher.scheduleFrame()
+```
+
