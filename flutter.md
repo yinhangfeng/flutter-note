@@ -253,15 +253,3 @@ Window
   get set onBeginFrame()
   get set onDrawFrame()
 ```
-
-## RendererBinding
-
-```
-RendererBinding
-  // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/rendering/binding.dart#L28
-  initInstances()
-
-  < WidgetsBinding
-    // https://github.com/flutter/flutter/blob/v1.10.1/packages/flutter/lib/src/widgets/binding.dart#L251
-    initInstances()
-```
