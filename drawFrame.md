@@ -175,6 +175,7 @@ void drawFrame() {
   pipelineOwner.flushCompositingBits();
   pipelineOwner.flushPaint();
   if (sendFramesToEngine) {
+    // 将 paint 内容提交给 engine 最终通过 skia 渲染
     renderView.compositeFrame(); // this sends the bits to the GPU
     pipelineOwner.flushSemantics(); // this also sends the semantics to the OS.
     _firstFrameSent = true;
