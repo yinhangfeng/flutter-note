@@ -157,7 +157,7 @@ void scheduleInitialPaint(ContainerLayer rootLayer) {
 ```
 
 ## WidgetsBinding.scheduleAttachRootWidget()
-```
+```dart
 // WidgetsBinding.scheduleAttachRootWidget()
 void scheduleAttachRootWidget(Widget rootWidget) {
   Timer.run(() {
