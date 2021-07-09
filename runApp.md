@@ -204,6 +204,7 @@ RenderObjectToWidgetElement<T> attachToRenderTree(BuildOwner owner, [ RenderObje
 ```
 
 ## SchedulerBinding.scheduleWarmUpFrame()
+调用 handleBeginFrame handleDrawFrame，参考 [drawFrame](./drawFrame.md)
 ```dart
 // SchedulerBinding.scheduleWarmUpFrame()
 void scheduleWarmUpFrame() {
