@@ -76,6 +76,7 @@ void _handleDrawFrame() {
 
 // SchedulerBinding.handleBeginFrame()
 // 执行 _transientCallbacks，主要用于驱动动画， 在 SchedulerBinding.scheduleFrameCallback() 里注册的
+// Ticker.scheduleTick https://github.com/flutter/flutter/blob/master/packages/flutter/lib/src/scheduler/ticker.dart#L250
 // https://github.com/flutter/flutter/blob/master/packages/flutter/lib/src/scheduler/binding.dart#L1075
 void handleBeginFrame(Duration? rawTimeStamp) {
   _firstRawTimeStampInEpoch ??= rawTimeStamp;
