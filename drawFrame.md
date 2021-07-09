@@ -182,6 +182,27 @@ void drawFrame() {
     _firstFrameSent = true;
   }
 }
+
+// RenderView.compositeFrame
+// _window.render(scene); 最终调到了 engine c++ 代码
+void compositeFrame() {
+  Timeline.startSync('Compositing', arguments: timelineArgumentsIndicatingLandmarkEvent);
+  try {
+    final ui.SceneBuilder builder = ui.SceneBuilder();
+    final ui.Scene scene = layer!.buildScene(builder);
+    if (automaticSystemUiAdjustment)
+      _updateSystemChrome();
+    _window.render(scene);
+    scene.dispose();
+    assert(() {
+      if (debugRepaintRainbowEnabled || debugRepaintTextRainbowEnabled)
+        debugCurrentRepaintColor = debugCurrentRepaintColor.withHue((debugCurrentRepaintColor.hue + 2.0) % 360.0);
+      return true;
+    }());
+  } finally {
+    Timeline.finishSync();
+  }
+}
 ```
 
 
